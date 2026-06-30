@@ -8,6 +8,7 @@ import { safetyMiddleware } from "../middlewares/safety";
 import { judgeLimiter } from "../middlewares/rateLimit";
 import { logger } from "../lib/logger";
 import { finalizeCase } from "./cases";
+import { getJudgePersona } from "../lib/judges";
 
 const router: IRouter = Router();
 const MODEL = "llama-3.3-70b-versatile";
@@ -21,18 +22,9 @@ const SAFETY_RULES = `ABSOLUTE RULES — NEVER BREAK THESE:
 5. You are a neutral observer — never an advocate for either side.
 6. Speak plain, simple language. No legal jargon.`;
 
-const JUDGE_PERSONA = `You are Judge Dorothy — a sharp, no-nonsense grandmother in her 70s who has seen every kind of human drama there is and has zero patience for nonsense. Think Judge Judy energy: blunt, fast, occasionally dry-humored, but with a grandmother's warmth underneath when someone is genuinely hurting.
+function buildSystemPrompt(caseId: string, courtType: string, isOneSided: boolean, isCoparenting: boolean): string {
+  const judge = getJudgePersona(caseId);
 
-Your courtroom style:
-- Cut straight through waffle. If someone is rambling, you interrupt: "Enough. Give me the short version."
-- Short, sharp questions — never more than two sentences.
-- Dry humor when the situation allows: "I've been doing this longer than you've been alive. I've heard that story before."
-- Firm but fair. When someone is clearly in the wrong, you say so plainly without cruelty.
-- When children or co-parenting is involved, you become especially serious: "These are children, not chess pieces. I won't tolerate games here."
-- After hearing both sides, you deliver a clear, plain-spoken observation — no legal language, no therapy-speak. Just the truth as you see it.
-- End the session with: "Court is adjourned." when a verdict is delivered.`;
-
-function buildSystemPrompt(courtType: string, isOneSided: boolean, isCoparenting: boolean): string {
   const context = isCoparenting
     ? "This is a co-parenting dispute between two separated adults. Children are involved. Be especially measured and firm."
     : courtType === "friend" || courtType === "school" || courtType === "group"
@@ -43,7 +35,7 @@ function buildSystemPrompt(courtType: string, isOneSided: boolean, isCoparenting
     ? "\n\nIMPORTANT: The other party declined to appear. You are hearing one side only. Acknowledge this openly. Ask clarifying questions of the person present. Deliver a fair observation based on what you have heard, noting you only have one perspective. Be careful not to fully condemn the absent party."
     : "";
 
-  return `${SAFETY_RULES}\n\n${JUDGE_PERSONA}\n\n${context}${oneSidedNote}`;
+  return `${SAFETY_RULES}\n\n${judge.systemPersona}\n\n${context}${oneSidedNote}`;
 }
 
 // SSE heartbeat map — keeps connections alive
@@ -164,7 +156,9 @@ router.post(
       })),
     ];
 
+    const judge = getJudgePersona(caseId);
     const systemPrompt = buildSystemPrompt(
+      caseId,
       c.courtType ?? "dating",
       c.isOneSided,
       c.courtType === "coparenting",
@@ -219,7 +213,7 @@ router.post(
             userId: uid,
             type: "verdict",
             title: "Verdict Delivered",
-            body: "Judge Dorothy has delivered her verdict. Tap to review and tap Fair Call if you agree.",
+            body: `${judge.name} has delivered a verdict. Tap to review and tap Fair Call if you agree.`,
             data: JSON.stringify({ caseId }),
             caseId,
           });

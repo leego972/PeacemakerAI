@@ -10,7 +10,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
 
-const JUDGE_IMAGE = require("../../assets/images/judge-dorothy.png");
+import { getJudge } from "@/constants/judges";
 
 type Message = {
   id: string;
@@ -39,6 +39,7 @@ export default function CourtroomScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, token } = useAuth();
+  const judge = id ? getJudge(id) : null;
   const [caseData, setCaseData] = useState<CaseData | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -178,9 +179,9 @@ export default function CourtroomScreen() {
     >
       {/* Judge header */}
       <View style={[styles.judgeHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Image source={JUDGE_IMAGE} style={styles.judgeAvatar} />
+        {judge && <Image source={judge.image} style={styles.judgeAvatar} />}
         <View style={styles.judgeInfo}>
-          <Text style={[styles.judgeName, { color: colors.foreground }]}>Judge Dorothy</Text>
+          <Text style={[styles.judgeName, { color: colors.foreground }]}>{judge?.name ?? "The Judge"}</Text>
           <Text style={[styles.judgeTitle, { color: colors.mutedForeground }]}>
             {caseData?.courtType ? `${caseData.courtType} Court` : "Court in Session"}
             {caseData?.isOneSided ? " · One-sided hearing" : ""}
@@ -205,8 +206,8 @@ export default function CourtroomScreen() {
           const isMe = !isJudge && item.content.includes(`[${isSummoner ? "Claimant" : "Respondent"}`);
           return (
             <View style={[styles.msgRow, isJudge && styles.judgeRow, !isJudge && !isMe && styles.otherRow]}>
-              {isJudge && (
-                <Image source={JUDGE_IMAGE} style={styles.avatar} />
+              {isJudge && judge && (
+                <Image source={judge.image} style={styles.avatar} />
               )}
               <View
                 style={[
@@ -232,7 +233,7 @@ export default function CourtroomScreen() {
         ListFooterComponent={sending ? (
           <View style={styles.typing}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.typingText, { color: colors.mutedForeground }]}>Judge Dorothy is considering...</Text>
+            <Text style={[styles.typingText, { color: colors.mutedForeground }]}>{judge?.name ?? "The Judge"} is considering...</Text>
           </View>
         ) : null}
       />

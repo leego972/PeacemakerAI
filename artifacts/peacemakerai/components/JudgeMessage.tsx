@@ -1,20 +1,22 @@
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
-
-const JUDGE_IMAGE = require("../assets/images/judge-dorothy.png");
+import { getJudge, JUDGES } from "@/constants/judges";
 
 interface JudgeMessageProps {
   content: string;
+  caseId?: string;
 }
 
-export function JudgeMessage({ content }: JudgeMessageProps) {
+export function JudgeMessage({ content, caseId }: JudgeMessageProps) {
   const colors = useColors();
+  const judge = caseId ? getJudge(caseId) : JUDGES.dorothy;
+
   return (
     <View style={styles.row}>
-      <Image source={JUDGE_IMAGE} style={styles.avatar} />
+      <Image source={judge.image} style={styles.avatar} />
       <View style={[styles.bubble, { backgroundColor: colors.judgeLight, borderColor: colors.judge }]}>
-        <Text style={[styles.label, { color: colors.judge }]}>JUDGE DOROTHY</Text>
+        <Text style={[styles.label, { color: colors.judge }]}>{judge.name.toUpperCase()}</Text>
         <Text style={[styles.text, { color: colors.foreground }]}>{content}</Text>
       </View>
     </View>
