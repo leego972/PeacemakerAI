@@ -15,20 +15,60 @@ router.use(requireAuth);
 const SUMMONS_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 const DUPLICATE_CASE_LOOKBACK_LIMIT = 50;
 
+function speakerLabelForCaseUser(caseRow: typeof casesTable.$inferSelect, userId: string) {
+  return caseRow.summonerId === userId ? "Claimant" : "Respondent";
+}
+
+function sanitizeCaseForUser(caseRow: typeof casesTable.$inferSelect, userId: string) {
+  const isSummoner = caseRow.summonerId === userId;
+  return {
+    ...caseRow,
+    // Raw claimant opening statement is a private submission to the judge.
+    // Respondents see the case title, summons, court type, status, and judge-mediated questions/verdicts only.
+    openingArgument: isSummoner ? caseRow.openingArgument : null,
+  };
+}
+
+function visibleMessageForUser(message: typeof messagesTable.$inferSelect, caseRow: typeof casesTable.$inferSelect, userId: string) {
+  if (message.role === "judge") return true;
+
+  const speakerLabel = speakerLabelForCaseUser(caseRow, userId);
+  return message.content.includes(`— ${speakerLabel} —`);
+}
+
+function sanitizeMessageForUser(message: typeof messagesTable.$inferSelect, caseRow: typeof casesTable.$inferSelect, userId: string) {
+  const speakerLabel = speakerLabelForCaseUser(caseRow, userId);
+  const privatePrefix = `[PRIVATE SUBMISSION TO JUDGE — ${speakerLabel} —`;
+
+  let content = message.content;
+  if (message.role === "user" && content.startsWith(privatePrefix)) {
+    const marker = "]: ";
+    const markerIndex = content.indexOf(marker);
+    if (markerIndex >= 0) content = content.slice(markerIndex + marker.length);
+  }
+
+  return {
+    id: message.id,
+    role: message.role === "user" ? "user_private_submission" : message.role,
+    content,
+    timestamp: message.ts,
+    visibleOnlyToSender: message.role === "user",
+  };
+}
+
 // Adjust health score and write log entries after a case concludes
 async function finalizeCase(
   caseId: string,
   relationshipId: string,
   summonerId: string,
   respondentId: string | null,
-  outcome: "fair_call" | "one_sided_verdict" | "declined" | "expired",
+  outcome: "fair_call" | "declined" | "expired",
   verdictSummary: string | null,
   courtType: string,
   title: string,
 ) {
   let delta = 0;
   if (outcome === "fair_call") delta = 15;
-  else if (outcome === "one_sided_verdict") delta = -10;
   else if (outcome === "declined") delta = -5;
   else if (outcome === "expired") delta = -5;
 
@@ -80,7 +120,7 @@ router.get("/cases", async (req, res): Promise<void> => {
       )
     )
     .orderBy(desc(casesTable.updatedAt));
-  res.json(rows);
+  res.json(rows.map((row) => sanitizeCaseForUser(row, userId)));
 });
 
 // POST /cases — file a new case (summon partner/contact)
@@ -188,16 +228,16 @@ router.post("/cases", caseFilingLimiter, async (req, res): Promise<void> => {
     userId: respondentId,
     type: "summons",
     title: "You have been summoned",
-    body: `${me?.name ?? "Someone you know"} has filed a case: "${title}". You have 48 hours to respond.`,
+    body: `${me?.name ?? "Someone you know"} has filed a private fairness case: "${title}". You have 48 hours to accept or decline.`,
     data: JSON.stringify({ caseId: newCase.id }),
     caseId: newCase.id,
     relationshipId,
   });
 
-  res.status(201).json(newCase);
+  res.status(201).json(sanitizeCaseForUser(newCase, userId));
 });
 
-// GET /cases/:id — get case with messages
+// GET /cases/:id — get case with judge-mediated messages only
 router.get("/cases/:id", async (req, res): Promise<void> => {
   const userId = req.auth!.userId;
   const id = req.params.id as string;
@@ -214,14 +254,14 @@ router.get("/cases/:id", async (req, res): Promise<void> => {
     .where(eq(messagesTable.caseId, id))
     .orderBy(asc(messagesTable.ts));
 
+  const visibleMessages = msgs
+    .filter((m) => visibleMessageForUser(m, c, userId))
+    .map((m) => sanitizeMessageForUser(m, c, userId));
+
   res.json({
-    ...c,
-    messages: msgs.map((m) => ({
-      id: m.id,
-      role: m.role,
-      content: m.content,
-      timestamp: m.ts,
-    })),
+    ...sanitizeCaseForUser(c, userId),
+    communicationMode: "judge_mediated_private",
+    messages: visibleMessages,
   });
 });
 
@@ -241,6 +281,7 @@ router.post("/cases/:id/respond", async (req, res): Promise<void> => {
   }
   if (new Date() > c.expiresAt!) {
     await db.update(casesTable).set({ status: "expired" }).where(eq(casesTable.id, id));
+    await finalizeCase(id, c.relationshipId, c.summonerId, userId, "expired", null, c.courtType ?? "", c.title);
     res.status(410).json({ error: "Summons has expired" });
     return;
   }
@@ -257,18 +298,18 @@ router.post("/cases/:id/respond", async (req, res): Promise<void> => {
       userId: c.summonerId,
       type: "summons_accepted",
       title: "Summons Accepted",
-      body: `${me?.name ?? "The other person"} has accepted your summons. Court is now in session.`,
+      body: `${me?.name ?? "The other person"} has accepted the summons. The private judge-mediated hearing can now begin.`,
       data: JSON.stringify({ caseId: id }),
       caseId: id,
     });
 
-    res.json(updated);
+    res.json(sanitizeCaseForUser(updated, userId));
   } else {
     const [updated] = await db.update(casesTable)
       .set({
         status: "declined",
         respondentDeclineReason: declineReason?.trim() ?? null,
-        isOneSided: true,
+        isOneSided: false,
       })
       .where(eq(casesTable.id, id))
       .returning();
@@ -277,7 +318,7 @@ router.post("/cases/:id/respond", async (req, res): Promise<void> => {
       userId: c.summonerId,
       type: "summons_declined",
       title: "Summons Declined",
-      body: `${me?.name ?? "The other person"} declined the summons${declineReason ? `: "${declineReason}"` : "."} The judge will hear your side only.`,
+      body: `${me?.name ?? "The other person"} declined the summons${declineReason ? `: "${declineReason}"` : "."} This booking attempt is closed.`,
       data: JSON.stringify({ caseId: id }),
       caseId: id,
     });
@@ -287,7 +328,7 @@ router.post("/cases/:id/respond", async (req, res): Promise<void> => {
       "declined", null, c.courtType ?? "", c.title,
     );
 
-    res.json(updated);
+    res.json(sanitizeCaseForUser(updated, userId));
   }
 });
 
@@ -362,7 +403,7 @@ router.post("/cases/:id/fair-call", async (req, res): Promise<void> => {
     }
   }
 
-  res.json(updated);
+  res.json(sanitizeCaseForUser(updated, userId));
 });
 
 // GET /cases/log — hearing logbook for the current user
