@@ -6,6 +6,7 @@ import {
 import { eq, and, or, desc, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { healthLabel } from "./relationships";
+import { checkCaseSuitability } from "../lib/caseSuitability";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -80,7 +81,7 @@ router.get("/cases", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-// POST /cases — file a new case (summon partner)
+// POST /cases — file a new case (summon partner/contact)
 router.post("/cases", async (req, res): Promise<void> => {
   const userId = req.auth!.userId;
   const { relationshipId, courtType, title, openingArgument } = req.body as {
@@ -95,7 +96,18 @@ router.post("/cases", async (req, res): Promise<void> => {
     return;
   }
 
-  // Verify relationship exists and user is part of it
+  const suitability = checkCaseSuitability({ courtType, title, openingArgument });
+  if (!suitability.suitable) {
+    res.status(422).json({
+      error: "Case not suitable for PeacemakerAI",
+      category: suitability.category,
+      reason: suitability.reason,
+      redirect: suitability.redirect,
+    });
+    return;
+  }
+
+  // Verify relationship/contact exists and user is part of it
   const [rel] = await db.select().from(relationshipsTable)
     .where(and(
       eq(relationshipsTable.id, relationshipId),
@@ -113,7 +125,7 @@ router.post("/cases", async (req, res): Promise<void> => {
 
   const respondentId = rel.initiatorId === userId ? rel.partnerId : rel.initiatorId;
   if (!respondentId) {
-    res.status(400).json({ error: "Partner has not linked their account yet" });
+    res.status(400).json({ error: "The other person has not linked their account yet" });
     return;
   }
 
@@ -138,7 +150,7 @@ router.post("/cases", async (req, res): Promise<void> => {
     userId: respondentId,
     type: "summons",
     title: "You have been summoned",
-    body: `${me?.name ?? "Your partner"} has filed a case: "${title}". You have 48 hours to respond.`,
+    body: `${me?.name ?? "Someone you know"} has filed a case: "${title}". You have 48 hours to respond.`,
     data: JSON.stringify({ caseId: newCase.id }),
     caseId: newCase.id,
     relationshipId,
@@ -207,7 +219,7 @@ router.post("/cases/:id/respond", async (req, res): Promise<void> => {
       userId: c.summonerId,
       type: "summons_accepted",
       title: "Summons Accepted",
-      body: `${me?.name ?? "Your partner"} has accepted your summons. Court is now in session.`,
+      body: `${me?.name ?? "The other person"} has accepted your summons. Court is now in session.`,
       data: JSON.stringify({ caseId: id }),
       caseId: id,
     });
@@ -227,7 +239,7 @@ router.post("/cases/:id/respond", async (req, res): Promise<void> => {
       userId: c.summonerId,
       type: "summons_declined",
       title: "Summons Declined",
-      body: `${me?.name ?? "Your partner"} declined the summons${declineReason ? `: "${declineReason}"` : "."}  The judge will hear your case alone.`,
+      body: `${me?.name ?? "The other person"} declined the summons${declineReason ? `: "${declineReason}"` : "."} The judge will hear your side only.`,
       data: JSON.stringify({ caseId: id }),
       caseId: id,
     });
@@ -291,7 +303,7 @@ router.post("/cases/:id/fair-call", async (req, res): Promise<void> => {
         userId: otherUserId,
         type: "fair_call",
         title: "Fair Call — Case Resolved",
-        body: "Both parties agreed. This dispute has been resolved. Smooth work.",
+        body: "Both parties agreed. This dispute has been resolved.",
         data: JSON.stringify({ caseId: id }),
         caseId: id,
       });
@@ -305,7 +317,7 @@ router.post("/cases/:id/fair-call", async (req, res): Promise<void> => {
         userId: otherUserId,
         type: "fair_call",
         title: "Fair Call Requested",
-        body: `${me?.name ?? "Your partner"} has tapped Fair Call. Tap yours to resolve the case.`,
+        body: `${me?.name ?? "The other person"} has tapped Fair Call. Tap yours to resolve the case.`,
         data: JSON.stringify({ caseId: id }),
         caseId: id,
       });
