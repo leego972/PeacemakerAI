@@ -1,23 +1,34 @@
-# PeacemakerAI — Child Bullying and Physical Violence Flow
+# PeacemakerAI — Child Conflict Triage, Bullying, Verbal Abuse, and Physical Violence Flow
 
-**Purpose:** Define how PeacemakerAI handles bullying between children, especially where one child is physically violent and the other child is shy, frightened, or hurt.
+**Purpose:** Define how PeacemakerAI handles conflict between children, especially where bullying, verbal abuse, physical aggression, fear, intimidation, or power imbalance may exist.
 
 ---
 
 ## Core Rule
 
-A bullying case involving children is not treated like a normal dispute hearing.
+Most child conflict must be triaged before any courtroom-style experience.
 
-If the case involves:
+A child case is only eligible for **Friendship Court** if it is:
+
+- Low intensity
+- Non-violent
+- Non-abusive
+- Not repeated bullying
+- No serious fear, humiliation, coercion, threat, or intimidation
+- No power imbalance
+- No child-safety concern
+- No need for school, parent, police, medical, counselling, or safeguarding intervention
+
+If the case involves any of the following, PeacemakerAI must switch away from court and into a **Child Safety / School Support Pathway**:
 
 - Children under 13
-- Physical violence
+- Physical violence or unwanted physical contact
 - Repeated bullying
-- Fear, intimidation, threats, coercion, or serious distress
+- Verbal abuse, humiliation, intimidation, threats, or coercion
+- Online abuse or cyberbullying
 - A power imbalance
 - A child who is shy, hurt, scared, isolated, or unable to self-advocate
-
-then PeacemakerAI must switch to a **Child Safety / School Support Pathway**.
+- Any indication a child is afraid to attend school or activities
 
 The app must not produce a normal verdict such as:
 
@@ -27,6 +38,20 @@ The app must not produce a normal verdict such as:
 - “The court orders punishment”
 
 The app may produce a careful safety-support summary for trusted adults.
+
+---
+
+## Decision Matrix
+
+| Case type | Correct route |
+|---|---|
+| Two children disagree over a game with no threats or fear | Friendship Court may be allowed |
+| One child called another child a name once, no pattern, no fear | Gentle reflection / Friendship Court may be allowed |
+| Repeated name-calling, humiliation, exclusion, intimidation, or threats | Safety / School Support Pathway |
+| Pushing, hitting, kicking, hair-pulling, slapping, spitting, throwing objects | Safety / School Support Pathway |
+| Child is scared, withdrawn, refusing school, or unable to speak up | Safety / School Support Pathway |
+| Cyberbullying, group chat pile-on, humiliating photos/videos | Safety / School Support Pathway plus online safety resources |
+| Sexual, racial, religious, disability, or identity-based harassment | Safety / School Support Pathway |
 
 ---
 
@@ -94,6 +119,8 @@ The app asks the filing adult:
 4. Was the school, teacher, coach, or supervising adult told?
 5. Are there messages, screenshots, witness names, or incident dates?
 6. Is the child safe tonight?
+7. Is there online material that needs reporting or preserving?
+8. Does the child need medical, counselling, school wellbeing, or emergency support?
 
 If immediate danger exists, show emergency help.
 
@@ -132,7 +159,7 @@ Example child-facing wording:
 
 ```text
 This sounds serious, and you do not have to handle it alone.
-Because someone has been physically hurting you, this is not a Friendship Court case.
+Because someone has been hurting, scaring, or humiliating you, this is not a Friendship Court case.
 Please tell a trusted adult now — a parent, carer, teacher, school counsellor, or another safe adult.
 You deserve to be safe.
 ```
@@ -149,7 +176,7 @@ Correct judge response:
 
 ```text
 Court is paused.
-This involves children and physical harm, so this is not suitable for a normal PeacemakerAI verdict.
+This involves children and possible harm, so this is not suitable for a normal PeacemakerAI verdict.
 A trusted adult needs to step in. The priority is safety, documentation, and school support — not deciding a winner.
 ```
 
@@ -167,7 +194,8 @@ Do not allow:
 - School liability conclusions
 - Advice to physically fight back
 - Pressure for the victim child to confront the aggressor child
-- Direct unsupervised child-to-child courtroom sessions involving physical bullying
+- Direct unsupervised child-to-child courtroom sessions involving physical bullying or repeated verbal abuse
+- Public galleries for child bullying cases
 
 ---
 
@@ -194,19 +222,21 @@ Get a Safe Adult
 ## Build Requirements
 
 1. Add an intake blocker for child + bullying + physical violence.
-2. Route the user to Safety Resources / School Support instead of Courtroom.
-3. Generate a private incident summary, not a verdict.
-4. Disable share cards for child safety cases.
-5. Add parent/carer guidance.
-6. Add child-friendly guidance.
-7. Keep regional resources configurable.
-8. Store only necessary data and allow deletion.
+2. Add an intake blocker for child + repeated verbal abuse, humiliation, threats, exclusion, or fear.
+3. Route the user to Safety Resources / School Support instead of Courtroom.
+4. Generate a private incident summary, not a verdict.
+5. Disable share cards for child safety cases.
+6. Add parent/carer guidance.
+7. Add child-friendly guidance.
+8. Keep regional resources configurable.
+9. Store only necessary data and allow deletion.
+10. Log the route as `child_welfare`, not as a normal resolved case.
 
 ---
 
 ## Product Principle
 
-When children and physical harm are involved, the goal is not virality, entertainment, or courtroom drama.
+When children and harm are involved, the goal is not virality, entertainment, or courtroom drama.
 
 The goal is:
 
