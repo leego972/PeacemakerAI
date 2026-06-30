@@ -7,7 +7,6 @@ import { requireAuth } from "../middlewares/auth";
 import { safetyMiddleware } from "../middlewares/safety";
 import { judgeLimiter } from "../middlewares/rateLimit";
 import { logger } from "../lib/logger";
-import { finalizeCase } from "./cases";
 import { getJudgePersona } from "../lib/judges";
 import { checkCaseSuitability } from "../lib/caseSuitability";
 
@@ -28,9 +27,10 @@ const SAFETY_RULES = `ABSOLUTE RULES — NEVER BREAK THESE:
 10. Verdicts are non-binding fairness observations based only on what was said in this private hearing.
 11. The parties must never chat directly with each other. All communication is to and from you, the judge.
 12. Do not quote one party's private submission directly to the other party unless it is essential and safe. Paraphrase neutrally when context is needed.
-13. Ask each party targeted questions through the judge only. Do not tell parties to argue with each other.`;
+13. Ask each party targeted questions through the judge only. Do not tell parties to argue with each other.
+14. If a party declined the summons, no hearing or verdict may proceed against that absent party.`;
 
-function buildSystemPrompt(caseId: string, courtType: string, isOneSided: boolean, isCoparenting: boolean): string {
+function buildSystemPrompt(caseId: string, courtType: string, isCoparenting: boolean): string {
   const judge = getJudgePersona(caseId);
 
   const context = isCoparenting
@@ -39,11 +39,7 @@ function buildSystemPrompt(caseId: string, courtType: string, isOneSided: boolea
       ? "This dispute involves young people, friends, classmates, or a group. Be firm but age-appropriate."
       : `This is a ${courtType} everyday interpersonal dispute.`;
 
-  const oneSidedNote = isOneSided
-    ? "\n\nIMPORTANT: The other party declined to appear. You are hearing one side only. Acknowledge this openly. Ask clarifying questions of the person present. Deliver only a limited fairness observation based on one perspective. Do not condemn the absent party."
-    : "";
-
-  return `${SAFETY_RULES}\n\n${judge.systemPersona}\n\n${context}${oneSidedNote}`;
+  return `${SAFETY_RULES}\n\n${judge.systemPersona}\n\n${context}`;
 }
 
 // SSE heartbeat map — keeps connections alive
@@ -71,12 +67,12 @@ router.get("/judge/:caseId/session", requireAuth, async (req, res): Promise<void
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  // Register client. Only judge/system events are broadcast to all parties.
+  // Register client. Only judge/system events are broadcast to the case participants.
   if (!sseClients.has(caseId)) sseClients.set(caseId, new Set());
   sseClients.get(caseId)!.add(res as any);
 
   // Send current case state immediately
-  res.write(`data: ${JSON.stringify({ type: "connected", caseId, status: c.status, mode: "judge_mediated" })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: "connected", caseId, status: c.status, mode: "judge_mediated_private" })}\n\n`);
 
   // Heartbeat every 25s
   const heartbeat = setInterval(() => {
@@ -89,7 +85,7 @@ router.get("/judge/:caseId/session", requireAuth, async (req, res): Promise<void
   });
 });
 
-// Broadcast judge/system events to all SSE clients watching a case.
+// Broadcast judge/system events to case participants only.
 // Do not use this for raw plaintiff/defendant submissions.
 function broadcastToCase(caseId: string, event: object) {
   const clients = sseClients.get(caseId);
@@ -134,7 +130,7 @@ router.post(
       )).limit(1);
 
     if (!c) { res.status(404).json({ error: "Case not found" }); return; }
-    if (!["in_session", "declined"].includes(c.status)) {
+    if (c.status !== "in_session") {
       res.status(409).json({ error: "Court is not currently in session" });
       return;
     }
@@ -174,7 +170,6 @@ router.post(
     const systemPrompt = buildSystemPrompt(
       caseId,
       c.courtType ?? "dating",
-      c.isOneSided,
       c.courtType === "coparenting",
     );
 
@@ -234,20 +229,11 @@ router.post(
         }
 
         broadcastToCase(caseId, { type: "verdict", content: judgeContent.trim(), timestamp: judgeTs });
-
-        // Auto-finalize if one-sided (no respondent to tap Fair Call)
-        if (c.isOneSided) {
-          await finalizeCase(
-            caseId, c.relationshipId, c.summonerId, null,
-            "one_sided_verdict", judgeContent.trim(), c.courtType ?? "", c.title,
-          );
-          await db.update(casesTable).set({ status: "resolved" }).where(eq(casesTable.id, caseId));
-        }
       } else {
         await db.update(casesTable).set({ updatedAt: new Date() }).where(eq(casesTable.id, caseId));
       }
 
-      // Broadcast judge reply to all parties. Only judge output is shared.
+      // Broadcast judge reply to all case participants. Only judge output is shared.
       broadcastToCase(caseId, {
         type: "message",
         role: "judge",
