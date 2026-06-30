@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "hgP8iAJVJnl863w0uLjES"
+uri = "file://artifacts/peacemakerai/assets/images/icon.png"
+type = "image"
+title = "peacemakerai app icon"
+
+[[generated]]
+id = "c9kIOE6xIRJsqQlCE36ln"
+uri = "file://artifacts/peacemakerai/assets/images/splash.png"
+type = "image"
+title = "peacemakerai splash screen"

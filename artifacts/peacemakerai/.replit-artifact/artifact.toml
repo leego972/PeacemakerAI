@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "PeacemakerAI"
+version = "1.0.0"
+id = "artifacts/peacemakerai"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 21944
+
+[services.development]
+run = "pnpm --filter @workspace/peacemakerai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/peacemakerai", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/peacemakerai", "run", "serve" ]
+
+[services.env]
+PORT = "21944"
+BASE_PATH = "/"
