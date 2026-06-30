@@ -25,7 +25,10 @@ const SAFETY_RULES = `ABSOLUTE RULES — NEVER BREAK THESE:
 7. If ANY message involves physical violence, abuse, weapons, child endangerment, coercive control, stalking, active crime, or self-harm: stop immediately and respond ONLY with: SAFETY_STOP
 8. You are a neutral observer — never an advocate for either side.
 9. Speak plain, simple language. No legal jargon.
-10. Verdicts are non-binding fairness observations based only on what was said in this private hearing.`;
+10. Verdicts are non-binding fairness observations based only on what was said in this private hearing.
+11. The parties must never chat directly with each other. All communication is to and from you, the judge.
+12. Do not quote one party's private submission directly to the other party unless it is essential and safe. Paraphrase neutrally when context is needed.
+13. Ask each party targeted questions through the judge only. Do not tell parties to argue with each other.`;
 
 function buildSystemPrompt(caseId: string, courtType: string, isOneSided: boolean, isCoparenting: boolean): string {
   const judge = getJudgePersona(caseId);
@@ -50,7 +53,7 @@ function res_sse_helper(res: Parameters<typeof router.get>[1] extends (req: any,
   return res;
 }
 
-// GET /judge/:caseId/session — SSE stream for real-time courtroom updates
+// GET /judge/:caseId/session — SSE stream for real-time judge/courtroom updates
 router.get("/judge/:caseId/session", requireAuth, async (req, res): Promise<void> => {
   const userId = req.auth!.userId;
   const caseId = req.params.caseId as string;
@@ -68,12 +71,12 @@ router.get("/judge/:caseId/session", requireAuth, async (req, res): Promise<void
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  // Register client
+  // Register client. Only judge/system events are broadcast to all parties.
   if (!sseClients.has(caseId)) sseClients.set(caseId, new Set());
   sseClients.get(caseId)!.add(res as any);
 
   // Send current case state immediately
-  res.write(`data: ${JSON.stringify({ type: "connected", caseId, status: c.status })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: "connected", caseId, status: c.status, mode: "judge_mediated" })}\n\n`);
 
   // Heartbeat every 25s
   const heartbeat = setInterval(() => {
@@ -86,7 +89,8 @@ router.get("/judge/:caseId/session", requireAuth, async (req, res): Promise<void
   });
 });
 
-// Broadcast an event to all SSE clients watching a case
+// Broadcast judge/system events to all SSE clients watching a case.
+// Do not use this for raw plaintiff/defendant submissions.
 function broadcastToCase(caseId: string, event: object) {
   const clients = sseClients.get(caseId);
   if (!clients) return;
@@ -96,7 +100,7 @@ function broadcastToCase(caseId: string, event: object) {
   });
 }
 
-// POST /judge/:caseId/message — send message to the judge
+// POST /judge/:caseId/message — submit private testimony/message to the judge
 router.post(
   "/judge/:caseId/message",
   judgeLimiter,
@@ -144,26 +148,20 @@ router.post(
     const [me] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     const isSummoner = c.summonerId === userId;
     const speakerLabel = isSummoner ? "Claimant" : "Respondent";
-    const taggedContent = `[${speakerLabel} — ${me?.name ?? "User"}]: ${content}`;
+    const taggedContent = `[PRIVATE SUBMISSION TO JUDGE — ${speakerLabel} — ${me?.name ?? "User"}]: ${content}`;
 
     const now = Date.now();
     await db.insert(messagesTable).values({ caseId, role: "user", content: taggedContent, ts: now });
 
-    // Broadcast the user message to all SSE clients in this case
-    broadcastToCase(caseId, {
-      type: "message",
-      role: "user",
-      speakerLabel,
-      content: taggedContent,
-      timestamp: now,
-    });
+    // Do NOT broadcast raw user submissions to the other party.
+    // The sender receives acknowledgement in the HTTP response; only judge replies are broadcast.
 
     const history = await db.select().from(messagesTable)
       .where(eq(messagesTable.caseId, caseId))
       .orderBy(asc(messagesTable.ts));
 
-    // Build conversation for Groq — inject opening argument as first user turn
-    const openingPreamble = `[Claimant's Opening Statement]: ${c.openingArgument}`;
+    // Build conversation for Groq — inject opening argument as private claimant submission.
+    const openingPreamble = `[PRIVATE OPENING SUBMISSION TO JUDGE — Claimant]: ${c.openingArgument}`;
     const groqMessages = [
       { role: "user" as const, content: openingPreamble },
       ...history.map((m) => ({
@@ -249,7 +247,7 @@ router.post(
         await db.update(casesTable).set({ updatedAt: new Date() }).where(eq(casesTable.id, caseId));
       }
 
-      // Broadcast judge reply to SSE clients
+      // Broadcast judge reply to all parties. Only judge output is shared.
       broadcastToCase(caseId, {
         type: "message",
         role: "judge",
@@ -261,6 +259,12 @@ router.post(
       res.json({
         safetyStop: false,
         isVerdict,
+        submission: {
+          role: "user_private_submission",
+          content,
+          timestamp: now,
+          visibleOnlyToSender: true,
+        },
         message: { id: judgeMsg.id, role: "judge", content: judgeMsg.content, timestamp: judgeMsg.ts },
       });
     } catch (e) {
