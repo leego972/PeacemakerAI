@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { requireAuth } from "../middlewares/auth";
+import { admissionsLimiter } from "../middlewares/rateLimit";
 import { checkCaseSuitability } from "../lib/caseSuitability";
 
 const router: IRouter = Router();
@@ -35,7 +36,7 @@ function getCourtRoute(category?: string) {
   }
 }
 
-router.post("/admissions/screen", async (req, res): Promise<void> => {
+router.post("/admissions/screen", admissionsLimiter, async (req, res): Promise<void> => {
   const input = req.body as AdmissionsInput;
   const personalConnectionRequired = input.personalConnectionConfirmed !== true;
 
