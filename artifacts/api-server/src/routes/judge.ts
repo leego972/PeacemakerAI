@@ -9,30 +9,35 @@ import { judgeLimiter } from "../middlewares/rateLimit";
 import { logger } from "../lib/logger";
 import { finalizeCase } from "./cases";
 import { getJudgePersona } from "../lib/judges";
+import { checkCaseSuitability } from "../lib/caseSuitability";
 
 const router: IRouter = Router();
 const MODEL = "llama-3.3-70b-versatile";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const SAFETY_RULES = `ABSOLUTE RULES — NEVER BREAK THESE:
-1. You are NOT a lawyer, therapist, or crisis service. Never give legal, medical, or therapeutic advice.
-2. Never use the words "should", "must", "need to", "have to", "recommend", or "advise".
-3. Keep every response under 80 words.
-4. If ANY message involves physical violence, abuse, weapons, child endangerment, or self-harm: stop immediately and respond ONLY with: SAFETY_STOP
-5. You are a neutral observer — never an advocate for either side.
-6. Speak plain, simple language. No legal jargon.`;
+1. You are NOT a lawyer, therapist, doctor, financial adviser, crisis service, police officer, court, or mediator.
+2. Never give legal, medical, therapeutic, tax, investment, financial, custody, parenting-order, police, or court advice.
+3. Never decide money owed, property ownership, custody, visitation, parenting schedules, child support, court orders, criminal allegations, defamation, or contracts.
+4. Never issue a verdict against a celebrity, influencer, politician, public figure, public handle, journalist, creator, streamer, or person targeted for public commentary.
+5. Never use the words "should", "must", "need to", "have to", "recommend", or "advise".
+6. Keep every response under 80 words.
+7. If ANY message involves physical violence, abuse, weapons, child endangerment, coercive control, stalking, active crime, or self-harm: stop immediately and respond ONLY with: SAFETY_STOP
+8. You are a neutral observer — never an advocate for either side.
+9. Speak plain, simple language. No legal jargon.
+10. Verdicts are non-binding fairness observations based only on what was said in this private hearing.`;
 
 function buildSystemPrompt(caseId: string, courtType: string, isOneSided: boolean, isCoparenting: boolean): string {
   const judge = getJudgePersona(caseId);
 
   const context = isCoparenting
-    ? "This is a co-parenting dispute between two separated adults. Children are involved. Be especially measured and firm."
+    ? "This is a co-parenting communication dispute only. Do not discuss custody, parenting orders, visitation, child support, fitness, or legal arrangements. If the user asks for those, say this matter cannot be handled here."
     : courtType === "friend" || courtType === "school" || courtType === "group"
-      ? "This dispute involves young people — friends or classmates. Be firm but age-appropriate."
-      : `This is a ${courtType} relationship dispute between two adults.`;
+      ? "This dispute involves young people, friends, classmates, or a group. Be firm but age-appropriate."
+      : `This is a ${courtType} everyday interpersonal dispute.`;
 
   const oneSidedNote = isOneSided
-    ? "\n\nIMPORTANT: The other party declined to appear. You are hearing one side only. Acknowledge this openly. Ask clarifying questions of the person present. Deliver a fair observation based on what you have heard, noting you only have one perspective. Be careful not to fully condemn the absent party."
+    ? "\n\nIMPORTANT: The other party declined to appear. You are hearing one side only. Acknowledge this openly. Ask clarifying questions of the person present. Deliver only a limited fairness observation based on one perspective. Do not condemn the absent party."
     : "";
 
   return `${SAFETY_RULES}\n\n${judge.systemPersona}\n\n${context}${oneSidedNote}`;
@@ -104,6 +109,17 @@ router.post(
 
     if (!content || typeof content !== "string") {
       res.status(400).json({ error: "content is required" });
+      return;
+    }
+
+    const messageSuitability = checkCaseSuitability({ content });
+    if (!messageSuitability.suitable) {
+      res.status(422).json({
+        error: "Message not suitable for PeacemakerAI",
+        category: messageSuitability.category,
+        reason: messageSuitability.reason,
+        redirect: messageSuitability.redirect,
+      });
       return;
     }
 
@@ -212,8 +228,8 @@ router.post(
           await db.insert(notificationsTable).values({
             userId: uid,
             type: "verdict",
-            title: "Verdict Delivered",
-            body: `${judge.name} has delivered a verdict. Tap to review and tap Fair Call if you agree.`,
+            title: "Fairness Verdict Delivered",
+            body: `${judge.name} has delivered a non-binding fairness verdict. Tap to review and tap Fair Call if you agree.`,
             data: JSON.stringify({ caseId }),
             caseId,
           });
