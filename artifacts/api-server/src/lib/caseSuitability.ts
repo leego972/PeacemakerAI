@@ -1,5 +1,6 @@
 export type CaseSuitabilityCategory =
   | "safety"
+  | "public_figure"
   | "legal"
   | "money"
   | "parenting"
@@ -32,6 +33,18 @@ const RULES: Rule[] = [
     ],
     reason: "This case appears to involve safety risk, abuse, threats, child safety, or self-harm. PeacemakerAI cannot run a hearing on this matter.",
     redirect: "Show safety resources and encourage immediate local emergency or crisis support where appropriate.",
+  },
+  {
+    category: "public_figure",
+    terms: [
+      "celebrity", "famous person", "public figure", "influencer", "creator", "streamer",
+      "youtuber", "youtube", "tiktok", "instagram", "twitter", "x.com", "journalist",
+      "politician", "prime minister", "president", "public statement", "public post",
+      "went viral", "viral video", "cancel", "call out", "put them on trial", "summon them publicly",
+      "@",
+    ],
+    reason: "This case appears to target a public figure, public statement, public handle, or online content. PeacemakerAI is for voluntary private disputes between people who know each other, not public trials or pile-ons.",
+    redirect: "Do not send a summons. Offer a private reflection or public-statement review only if it avoids naming, shaming, legal conclusions, or verdicts against a real person.",
   },
   {
     category: "legal",
