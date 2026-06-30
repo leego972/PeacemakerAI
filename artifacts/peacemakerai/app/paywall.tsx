@@ -10,7 +10,7 @@ import { useColors } from "@/hooks/useColors";
 import { useSubscription } from "@/lib/revenuecat";
 
 const PRODUCT_IDS = {
-  single: "peacemaker_single_hearing_199",
+  single: "peacemaker_single_booking_299",
   monthly: "peacemaker_unlimited_monthly_699",
   annual: "peacemaker_unlimited_annual_4999",
 } as const;
@@ -19,8 +19,8 @@ type PlanId = keyof typeof PRODUCT_IDS;
 
 const FEATURES = [
   { icon: "award", text: "Private AI courtroom with rotating judges" },
-  { icon: "send", text: "Summon the other person to respond voluntarily" },
-  { icon: "shield", text: "Safety and suitability screening before hearings" },
+  { icon: "send", text: "Summons booking included once sent" },
+  { icon: "shield", text: "Safety and suitability screening before payment" },
   { icon: "file-text", text: "Non-binding fairness verdicts, not legal rulings" },
   { icon: "share-2", text: "Redacted verdict cards for safe sharing" },
   { icon: "book-open", text: "Private hearing history and Fair Call resolution log" },
@@ -43,7 +43,7 @@ export default function PaywallScreen() {
   const availablePackages = offerings?.current?.availablePackages ?? [];
 
   const plans = useMemo(() => {
-    const singlePackage = findPackage(availablePackages, PRODUCT_IDS.single, ["single", "hearing", "one"]);
+    const singlePackage = findPackage(availablePackages, PRODUCT_IDS.single, ["single", "booking", "hearing", "one"]);
     const monthlyPackage = offerings?.current?.monthly ?? findPackage(availablePackages, PRODUCT_IDS.monthly, ["monthly", "month"]);
     const annualPackage = offerings?.current?.annual ?? findPackage(availablePackages, PRODUCT_IDS.annual, ["annual", "year"]);
 
@@ -51,8 +51,8 @@ export default function PaywallScreen() {
       single: {
         id: "single" as const,
         label: "Book One Hearing",
-        price: "$1.99",
-        note: "One complete eligible hearing",
+        price: "$2.99",
+        note: "One eligible booking attempt. Charged once summons is sent.",
         badge: "Best for trying it",
         pkg: singlePackage,
       },
@@ -60,8 +60,8 @@ export default function PaywallScreen() {
         id: "monthly" as const,
         label: "Unlimited Monthly",
         price: "$6.99/mo",
-        note: "Unlimited eligible hearings",
-        badge: "Most flexible",
+        note: "Unlimited eligible booking attempts and hearings",
+        badge: "Best after 3 bookings",
         pkg: monthlyPackage,
       },
       annual: {
@@ -119,9 +119,9 @@ export default function PaywallScreen() {
           <View style={[styles.emblem, { borderColor: colors.primary }]}> 
             <Feather name="award" size={36} color={colors.primary} />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Unlock the Hearing</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Unlock the Booking</Text>
           <Text style={[styles.sub, { color: colors.mutedForeground }]}> 
-            Present both sides, enter the private courtroom, and receive a non-binding fairness verdict.
+            Send a private summons, let the other person respond voluntarily, and receive a non-binding fairness verdict if the hearing proceeds.
           </Text>
         </View>
 
@@ -170,6 +170,13 @@ export default function PaywallScreen() {
         </View>
 
         <View style={[styles.scopeCard, { borderColor: colors.border }]}> 
+          <Text style={[styles.scopeTitle, { color: colors.foreground }]}>Booking policy</Text>
+          <Text style={[styles.scopeText, { color: colors.mutedForeground }]}> 
+            One-off bookings are consumed when an eligible summons is sent, even if the invited person declines. Members get unlimited eligible bookings.
+          </Text>
+        </View>
+
+        <View style={[styles.scopeCard, { borderColor: colors.border }]}> 
           <Text style={[styles.scopeTitle, { color: colors.foreground }]}>Built for private everyday disputes</Text>
           <Text style={[styles.scopeText, { color: colors.mutedForeground }]}> 
             PeacemakerAI does not handle legal, money, custody, abuse, emergency, or public-figure pile-on cases.
@@ -210,7 +217,7 @@ export default function PaywallScreen() {
           </Text>
         </TouchableOpacity>
         <Text style={[styles.legal, { color: colors.mutedForeground }]}> 
-          Subscriptions auto-renew. Cancel anytime in App Store or Google Play settings. Hearings are non-binding and not legal advice.
+          Subscriptions auto-renew. Cancel anytime in App Store or Google Play settings. Bookings are non-binding and not legal advice.
         </Text>
       </View>
     </View>
