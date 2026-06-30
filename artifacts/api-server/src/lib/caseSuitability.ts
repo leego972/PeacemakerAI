@@ -1,5 +1,6 @@
 export type CaseSuitabilityCategory =
   | "safety"
+  | "child_welfare"
   | "public_figure"
   | "legal"
   | "money"
@@ -33,6 +34,20 @@ const RULES: Rule[] = [
     ],
     reason: "This case appears to involve safety risk, abuse, threats, child safety, or self-harm. PeacemakerAI cannot run a hearing on this matter.",
     redirect: "Show safety resources and encourage immediate local emergency or crisis support where appropriate.",
+  },
+  {
+    category: "child_welfare",
+    terms: [
+      "bullying", "bullied", "bully", "verbal abuse", "physically violent", "physical violence",
+      "pushed me", "pushed her", "pushed him", "shoved", "slapped", "punched", "kicked",
+      "hair pulling", "spat on", "spit on", "threatened at school", "school violence",
+      "scared to go to school", "afraid to go to school", "name calling", "called her names",
+      "called him names", "humiliated", "excluded every day", "picked on", "teased every day",
+      "my child is being bullied", "my daughter is being bullied", "my son is being bullied",
+      "10-year-old", "ten year old", "primary school", "schoolyard",
+    ],
+    reason: "This case appears to involve a child bullying, verbal abuse, physical aggression, or school-safety concern. PeacemakerAI should not run a normal child courtroom hearing on this matter.",
+    redirect: "Route to the Child Safety / School Support Pathway. Generate a private incident summary for trusted adults, not a verdict or share card.",
   },
   {
     category: "public_figure",
