@@ -39,13 +39,71 @@ Allowed invite relationships:
 
 Rule:
 
-> Anyone can invite anyone they personally know, but only for a safe, everyday interpersonal dispute that is not legal, financial, dangerous, or child-custody related.
+> Anyone can invite anyone they personally know, but only for a safe, everyday interpersonal dispute that is not legal, financial, dangerous, public-targeting, or child-custody related.
 
 Do not turn this into an open public drama app where strangers summon strangers.
 
 ---
 
-## 3. Approved Audience
+## 3. Personal Connection and Consent Enforcement
+
+PeacemakerAI cannot truly know who personally knows whom. The product must therefore rely on consent, friction, limits, reporting, and anti-harassment controls.
+
+Required controls:
+
+1. **Voluntary summons acceptance** — no case proceeds to a two-party hearing unless the invited person accepts.
+2. **No default verdict against a non-participant** — if the invited person declines or ignores the summons, do not create a public verdict against them.
+3. **Private invite only** — invite by private channel/account link, not by public tagging.
+4. **No public handle summons** — do not allow users to summon `@handles`, celebrities, influencers, politicians, streamers, creators, journalists, or public figures through public identity.
+5. **User attestation** — filing user confirms: “I personally know this person and this is a private everyday dispute.”
+6. **Respondent controls** — invited person can decline, block, report, and stop future invitations from that user.
+7. **Rate limits** — restrict repeated summons attempts, especially to the same person.
+8. **No pile-on mechanics** — no public votes against named people, no public case pages against non-consenting people.
+9. **Redaction before sharing** — verdict cards must remove names, handles, contact details, locations, children’s details, and sensitive facts.
+10. **Suitability blocking** — cases framed around public commentary, celebrity behaviour, political speech, accusations, money, legal rights, child safety, custody, or danger must be rejected.
+
+Operational principle:
+
+> PeacemakerAI does not prove relationships. It requires consent and blocks uses that look like harassment, public targeting, legal claims, safety issues, or reputational attacks.
+
+---
+
+## 4. Public Figures, Influencers, and Celebrities
+
+Users must not be allowed to summon celebrities, influencers, politicians, public commentators, journalists, streamers, creators, or other public figures merely because they said something publicly.
+
+Reason:
+
+- It creates harassment risk.
+- It creates defamation risk.
+- It could encourage pile-ons against real people.
+- It changes PeacemakerAI from private dispute resolution into public drama.
+- It creates app-store moderation and safety risk.
+
+Allowed:
+
+- A user may invite a public figure only if they personally know that person and the dispute is a private, everyday interpersonal disagreement between them.
+- The public figure must receive the same voluntary summons flow and must be able to decline, block, or report.
+
+Not allowed:
+
+- “I disagree with what this influencer said, summon them.”
+- “This celebrity owes the public an explanation, put them on trial.”
+- “Judge whether this politician is guilty.”
+- “Let users file cases against famous people.”
+- “Public court against influencers.”
+
+Possible future feature, but not part of the core app:
+
+**Public Statement Review Mode** — users could submit a public statement for a neutral reasoning breakdown, but there must be no summons, no verdict against a named person, no harassment, no legal conclusion, and no defamatory ruling. This feature should not be built until the core private-dispute app is stable.
+
+Rule:
+
+> PeacemakerAI is for voluntary private dispute resolution between people who know each other, not public trials of famous people.
+
+---
+
+## 5. Approved Audience
 
 PeacemakerAI is for low-to-medium intensity interpersonal disagreement:
 
@@ -62,7 +120,7 @@ Tone adjusts by age/context:
 
 ---
 
-## 4. Absolute Scope Boundary
+## 6. Absolute Scope Boundary
 
 PeacemakerAI provides everyday fairness opinions only. It must never claim to provide:
 
@@ -99,7 +157,7 @@ Avoid wording such as:
 
 ---
 
-## 5. Allowed Case Types
+## 7. Allowed Case Types
 
 Allowed categories:
 
@@ -126,9 +184,19 @@ Allowed examples:
 
 ---
 
-## 6. Blocked Case Types
+## 8. Blocked Case Types
 
 The app must block or redirect these cases before they reach the AI judge.
+
+### Public targeting
+
+- Celebrity disputes based on public statements
+- Influencer disputes based on online content
+- Political speech disputes
+- Public figure accusations
+- Attempts to summon public handles
+- Public shaming or pile-on cases
+- Defamation-style accusations
 
 ### Legal / court matters
 
@@ -195,7 +263,7 @@ Blocked co-parenting scope:
 
 ---
 
-## 7. Safety Stop System
+## 9. Safety Stop System
 
 Safety is a core product system.
 
@@ -230,7 +298,7 @@ Emergency resources must support regional configuration.
 
 ---
 
-## 8. Main User Flow
+## 10. Main User Flow
 
 Claimant flow:
 
@@ -239,35 +307,36 @@ Claimant flow:
 3. Dashboard — My Cases
 4. File a Case
 5. Intake form
-6. Admissions Officer screens suitability
-7. If accepted, judge is assigned by deterministic case ID
-8. Summons is sent to the other person
-9. Other person accepts and completes their side
-10. Live courtroom opens
-11. Judge asks targeted questions
-12. Judge gives non-binding fairness verdict
-13. Users can save private verdict and optionally share a redacted verdict card
+6. User confirms they personally know the other person and the case is private
+7. Admissions Officer screens suitability
+8. If accepted, judge is assigned by deterministic case ID
+9. Summons is sent to the other person
+10. Other person accepts and completes their side
+11. Live courtroom opens
+12. Judge asks targeted questions
+13. Judge gives non-binding fairness verdict
+14. Users can save private verdict and optionally share a redacted verdict card
 
 Respondent flow:
 
 1. Receives summons
 2. Opens case
-3. Accepts or declines
+3. Accepts, declines, blocks, or reports
 4. Completes 3-step response if accepting
 5. Enters courtroom
 6. Can accept Fair Call after verdict
 
 ---
 
-## 9. Viral Growth Loop
+## 11. Viral Growth Loop
 
 The app should grow through the dispute process itself.
 
 Core loop:
 
 1. User files a case
-2. App creates a dramatic summons card/link
-3. Other party joins to defend themselves
+2. App creates a dramatic private summons card/link
+3. Other party joins voluntarily to defend themselves
 4. Courtroom produces a verdict
 5. Users can share a redacted verdict card
 6. Viewers want to try it for their own argument
@@ -285,7 +354,7 @@ Do not reward users for starting more fights. Reward resolution, fairness, and c
 
 ---
 
-## 10. Judge Personas
+## 12. Judge Personas
 
 Five rotating AI judges:
 
@@ -301,7 +370,7 @@ Judges should deliver a fairness verdict, not a legal ruling.
 
 ---
 
-## 11. Monetisation and In-App Purchases
+## 13. Monetisation and In-App Purchases
 
 Recommended launch pricing:
 
@@ -332,7 +401,7 @@ RevenueCat product direction:
 - Entitlement: `premium`
 - Monthly product: `peacemaker_unlimited_monthly_699`
 - Annual product: `peacemaker_unlimited_annual_4999`
-- One-off consumable/non-subscription product: `peacemaker_single_hearing_199`
+- One-off product: `peacemaker_single_hearing_199`
 
 Paywall rule:
 
@@ -354,7 +423,7 @@ Buttons:
 
 ---
 
-## 12. Design Language
+## 14. Design Language
 
 Current design language remains:
 
@@ -377,30 +446,33 @@ The interface should feel authoritative but fair, serious but not cold, and cere
 
 ---
 
-## 13. One-Pass Build Priorities
+## 15. One-Pass Build Priorities
 
 Build in this order:
 
 1. Safety and suitability blocking
 2. Clean onboarding and case filing
-3. Relationship/invite system for multiple relationship types
-4. Admissions Officer acceptance/rejection screen
-5. Judge assignment and persona consistency
-6. Live courtroom
-7. Non-binding fairness verdict
-8. Paywall and RevenueCat IAP setup
-9. Summons link/share flow
-10. Redacted verdict card
-11. Demo case
-12. App Store / Play Store compliance polish
+3. Invite system for multiple relationship/contact types
+4. Consent, decline, block, report, and rate-limit controls
+5. Admissions Officer acceptance/rejection screen
+6. Judge assignment and persona consistency
+7. Live courtroom
+8. Non-binding fairness verdict
+9. Paywall and RevenueCat IAP setup
+10. Summons link/share flow
+11. Redacted verdict card
+12. Demo case
+13. App Store / Play Store compliance polish
 
 ---
 
-## 14. Do Not Build
+## 16. Do Not Build
 
 Do not build these unless there is a deliberate future product decision:
 
 - Public stranger disputes
+- Public trials of influencers or celebrities
+- Summons by public handle
 - Betting on verdicts
 - Drama leaderboards
 - Win streaks for arguments
@@ -417,7 +489,7 @@ Do not build these unless there is a deliberate future product decision:
 
 ---
 
-## 15. Product North Star
+## 17. Product North Star
 
 PeacemakerAI wins if users say:
 
