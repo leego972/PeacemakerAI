@@ -22,21 +22,24 @@ export default function SignupScreen() {
   const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSignup = async () => {
     if (!name.trim()) { setError("Please enter your name."); return; }
     if (!email.trim() || !email.includes("@")) { setError("Please enter a valid email."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
     setLoading(true);
     setError("");
-    try {
-      await signUp(name.trim(), email.trim().toLowerCase());
+    const result = await signUp(name.trim(), email.trim().toLowerCase(), password);
+    setLoading(false);
+    if (result.ok) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(tabs)/");
-    } catch {
-      setError("Sign up failed. Please try again.");
-      setLoading(false);
+    } else {
+      setError(result.error ?? "Sign up failed. Please try again.");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
@@ -95,6 +98,20 @@ export default function SignupScreen() {
               placeholder="you@example.com"
               placeholderTextColor={colors.mutedForeground}
               keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Password</Text>
+            <TextInput
+              value={password}
+              onChangeText={(t) => { setPassword(t); setError(""); }}
+              style={[styles.input, { backgroundColor: colors.secondary, borderColor: error ? colors.destructive : colors.border, color: colors.foreground }]}
+              placeholder="At least 6 characters"
+              placeholderTextColor={colors.mutedForeground}
+              secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
             />

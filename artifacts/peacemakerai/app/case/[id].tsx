@@ -22,7 +22,7 @@ import { getCourtById } from "@/constants/courts";
 import { JudgeMessage } from "@/components/JudgeMessage";
 import { UserMessage } from "@/components/UserMessage";
 import { SafetyBanner } from "@/components/SafetyBanner";
-import type { Case, ChatMessage } from "@/lib/storage";
+import type { Case, ChatMessage } from "@/context/CasesContext";
 import * as Haptics from "expo-haptics";
 
 const MESSAGES_BEFORE_VERDICT = 8;
@@ -31,30 +31,36 @@ export default function CaseScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { cases, addMessage, closeCase } = useCases();
+  const { getCase, closeCase } = useCases();
   const { user } = useAuth();
 
-  const caseData = cases.find((c) => c.id === id);
-  const court = caseData ? getCourtById(caseData.courtId) : undefined;
-
+  const [caseData, setCaseData] = useState<Case | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [safetyStop, setSafetyStop] = useState(false);
   const [safetyMessage, setSafetyMessage] = useState("");
+  const [loadingCase, setLoadingCase] = useState(true);
   const flatListRef = useRef<FlatList>(null);
 
-  const isClosed = caseData?.status === "closed";
-  const hasVerdict = !!caseData?.verdict;
-
   useEffect(() => {
-    if (caseData?.messages) {
-      const lastMsg = caseData.messages[caseData.messages.length - 1];
-      if (lastMsg?.content === "SAFETY_STOP") {
-        setSafetyStop(true);
-        setSafetyMessage(getSafetyMessage());
+    if (!id) return;
+    getCase(id).then((c) => {
+      if (c) {
+        setCaseData(c);
+        setMessages(c.messages ?? []);
+        const lastMsg = c.messages?.[c.messages.length - 1];
+        if (lastMsg?.content === "SAFETY_STOP") {
+          setSafetyStop(true);
+          setSafetyMessage(getSafetyMessage());
+        }
       }
-    }
-  }, [caseData?.messages]);
+      setLoadingCase(false);
+    });
+  }, [id]);
+
+  const court = caseData ? getCourtById(caseData.courtId) : undefined;
+  const isClosed = caseData?.status === "closed";
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || !caseData || thinking || isClosed) return;
@@ -72,73 +78,73 @@ export default function CaseScreen() {
     setThinking(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const updated = await addMessage(caseData.id, {
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
       role: "user",
       content: text,
       timestamp: Date.now(),
-    });
+    };
+    setMessages((prev) => [...prev, userMsg]);
 
-    if (!updated) { setThinking(false); return; }
+    const totalAfter = messages.length + 1;
+    const isTimeForVerdict = totalAfter >= MESSAGES_BEFORE_VERDICT;
 
-    const totalMessages = updated.messages.length;
-    const isTimeForVerdict = totalMessages >= MESSAGES_BEFORE_VERDICT;
-
-    const judgeResult = await callJudge(caseData.courtId, updated.messages);
+    const judgeResult = await callJudge(caseData.courtId, caseData.id, text);
     setThinking(false);
 
     if (!judgeResult.ok) {
-      await addMessage(caseData.id, {
-        role: "judge",
-        content: judgeResult.error.type === "no_key"
-          ? "The AI Judge is unavailable — no Groq API key configured."
-          : "The court is temporarily unavailable. Please try again.",
-        timestamp: Date.now(),
-      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString() + "_err",
+          role: "judge",
+          content: "The court is temporarily unavailable. Please try again.",
+          timestamp: Date.now(),
+        },
+      ]);
       return;
     }
 
     if (judgeResult.isSafetyStop) {
-      await addMessage(caseData.id, {
-        role: "judge",
-        content: "SAFETY_STOP",
-        timestamp: Date.now(),
-      });
       setSafetyStop(true);
       setSafetyMessage(getSafetyMessage());
       return;
     }
 
     const judgeContent = judgeResult.content;
+    const judgeMsg: ChatMessage = {
+      id: Date.now().toString() + "_judge",
+      role: "judge",
+      content: judgeContent,
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, judgeMsg]);
 
     if (isTimeForVerdict || judgeContent.toLowerCase().includes("court is adjourned")) {
-      await addMessage(caseData.id, {
-        role: "judge",
-        content: judgeContent,
-        timestamp: Date.now(),
-      });
-      await closeCase(
-        caseData.id,
-        judgeContent,
+      const verdictType =
         judgeContent.toLowerCase().includes("no resolution") ? "no_resolution"
           : judgeContent.toLowerCase().includes("partial") ? "partially_resolved"
-          : "resolved"
-      );
+          : "resolved";
+      await closeCase(caseData.id, judgeContent, verdictType);
+      setCaseData((prev) => prev ? { ...prev, status: "closed", verdict: judgeContent, verdictType } : prev);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.push({ pathname: "/case/verdict", params: { id: caseData.id } });
-    } else {
-      await addMessage(caseData.id, {
-        role: "judge",
-        content: judgeContent,
-        timestamp: Date.now(),
-      });
     }
-  }, [input, caseData, thinking, isClosed, addMessage, closeCase]);
+  }, [input, caseData, thinking, isClosed, messages.length, closeCase]);
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     if (item.content === "SAFETY_STOP") return null;
     if (item.role === "judge") return <JudgeMessage content={item.content} />;
     return <UserMessage content={item.content} userName={user?.name ?? "You"} />;
   };
+
+  if (loadingCase) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
 
   if (!caseData || !court) {
     return (
@@ -156,7 +162,7 @@ export default function CaseScreen() {
     >
       <FlatList
         ref={flatListRef}
-        data={caseData.messages}
+        data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         contentContainerStyle={[
@@ -289,7 +295,6 @@ const styles = StyleSheet.create({
     gap: 10,
     borderRadius: 14,
     paddingVertical: 14,
-    marginHorizontal: 0,
     marginTop: 8,
   },
   verdictBtnText: { fontSize: 15, fontFamily: "Inter_700Bold" },

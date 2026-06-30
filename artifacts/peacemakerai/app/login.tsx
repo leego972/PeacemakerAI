@@ -21,17 +21,16 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
-    if (!email.trim()) {
-      setError("Please enter your email.");
-      return;
-    }
+    if (!email.trim()) { setError("Please enter your email."); return; }
+    if (!password) { setError("Please enter your password."); return; }
     setLoading(true);
     setError("");
-    const result = await signIn(email.trim().toLowerCase());
+    const result = await signIn(email.trim().toLowerCase(), password);
     setLoading(false);
     if (result.ok) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -84,6 +83,20 @@ export default function LoginScreen() {
               placeholder="you@example.com"
               placeholderTextColor={colors.mutedForeground}
               keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Password</Text>
+            <TextInput
+              value={password}
+              onChangeText={(t) => { setPassword(t); setError(""); }}
+              style={[styles.input, { backgroundColor: colors.secondary, borderColor: error ? colors.destructive : colors.border, color: colors.foreground }]}
+              placeholder="Your password"
+              placeholderTextColor={colors.mutedForeground}
+              secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
             />

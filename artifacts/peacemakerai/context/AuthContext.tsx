@@ -1,12 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { clearUser, getUser, saveUser, type User } from "@/lib/storage";
-import { generateId } from "@/lib/storage";
+import { apiFetch, clearToken, loadToken, saveToken } from "@/lib/api";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  signUp: (name: string, email: string) => Promise<void>;
-  signIn: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  signUp: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -17,29 +22,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getUser().then((u) => {
-      setUser(u);
+    loadToken().then(async (token) => {
+      if (!token) { setLoading(false); return; }
+      const res = await apiFetch<User>("/auth/me");
+      if (res.ok) setUser(res.data);
+      else await clearToken();
       setLoading(false);
     });
   }, []);
 
-  const signUp = useCallback(async (name: string, email: string) => {
-    const newUser: User = { id: generateId(), name, email };
-    await saveUser(newUser);
-    setUser(newUser);
+  const signUp = useCallback(async (name: string, email: string, password: string) => {
+    const res = await apiFetch<{ token: string; user: User }>("/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+    });
+    if (!res.ok) return { ok: false, error: res.error };
+    await saveToken(res.data.token);
+    setUser(res.data.user);
+    return { ok: true };
   }, []);
 
-  const signIn = useCallback(async (email: string) => {
-    const existing = await getUser();
-    if (existing && existing.email.toLowerCase() === email.toLowerCase()) {
-      setUser(existing);
-      return { ok: true };
-    }
-    return { ok: false, error: "No account found with that email. Please sign up first." };
+  const signIn = useCallback(async (email: string, password: string) => {
+    const res = await apiFetch<{ token: string; user: User }>("/auth/signin", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) return { ok: false, error: res.error };
+    await saveToken(res.data.token);
+    setUser(res.data.user);
+    return { ok: true };
   }, []);
 
   const signOut = useCallback(async () => {
-    await clearUser();
+    await clearToken();
     setUser(null);
   }, []);
 
