@@ -7,11 +7,13 @@ import { eq, and, or, desc, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { caseFilingLimiter } from "../middlewares/rateLimit";
 import { checkCaseSuitability } from "../lib/caseSuitability";
+import { findRepeatDispute } from "../lib/repeatDispute";
 
 const router: IRouter = Router();
 router.use(requireAuth);
 
 const SUMMONS_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
+const DUPLICATE_CASE_LOOKBACK_LIMIT = 50;
 
 // Adjust health score and write log entries after a case concludes
 async function finalizeCase(
@@ -137,6 +139,31 @@ router.post("/cases", caseFilingLimiter, async (req, res): Promise<void> => {
   const respondentId = rel.initiatorId === userId ? rel.partnerId : rel.initiatorId;
   if (!respondentId) {
     res.status(400).json({ error: "The other person has not linked their account yet" });
+    return;
+  }
+
+  const existingCases = await db.select().from(casesTable)
+    .where(eq(casesTable.relationshipId, relationshipId))
+    .orderBy(desc(casesTable.updatedAt))
+    .limit(DUPLICATE_CASE_LOOKBACK_LIMIT);
+
+  const repeatDispute = findRepeatDispute({
+    courtType,
+    title,
+    openingArgument,
+    existingCases,
+  });
+
+  if (repeatDispute.repeated) {
+    res.status(409).json({
+      error: "Repeat dispute blocked",
+      category: "repeat_dispute",
+      reason: repeatDispute.reason,
+      existingCaseId: repeatDispute.existingCaseId,
+      existingStatus: repeatDispute.existingStatus,
+      similarity: repeatDispute.similarity,
+      redirect: "Open the existing case, use Fair Call, or create a new case only if there is a materially new incident with new facts.",
+    });
     return;
   }
 
