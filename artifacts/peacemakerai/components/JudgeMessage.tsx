@@ -1,7 +1,8 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
+
+const JUDGE_IMAGE = require("../assets/images/judge-dorothy.png");
 
 interface JudgeMessageProps {
   content: string;
@@ -11,11 +12,9 @@ export function JudgeMessage({ content }: JudgeMessageProps) {
   const colors = useColors();
   return (
     <View style={styles.row}>
-      <View style={[styles.avatar, { backgroundColor: colors.judgeLight, borderColor: colors.judge }]}>
-        <Feather name="award" size={14} color={colors.judge} />
-      </View>
+      <Image source={JUDGE_IMAGE} style={styles.avatar} />
       <View style={[styles.bubble, { backgroundColor: colors.judgeLight, borderColor: colors.judge }]}>
-        <Text style={[styles.label, { color: colors.judge }]}>THE JUDGE</Text>
+        <Text style={[styles.label, { color: colors.judge }]}>JUDGE DOROTHY</Text>
         <Text style={[styles.text, { color: colors.foreground }]}>{content}</Text>
       </View>
     </View>
@@ -31,12 +30,9 @@ const styles = StyleSheet.create({
     paddingRight: 40,
   },
   avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     marginTop: 4,
   },
   bubble: {

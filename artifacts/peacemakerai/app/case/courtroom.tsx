@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, FlatList, KeyboardAvoidingView, Platform,
+  ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -9,6 +9,8 @@ import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
 import * as Haptics from "expo-haptics";
+
+const JUDGE_IMAGE = require("../../assets/images/judge-dorothy.png");
 
 type Message = {
   id: string;
@@ -176,9 +178,7 @@ export default function CourtroomScreen() {
     >
       {/* Judge header */}
       <View style={[styles.judgeHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={[styles.gavelIcon, { backgroundColor: colors.primary + "22" }]}>
-          <Feather name="award" size={18} color={colors.primary} />
-        </View>
+        <Image source={JUDGE_IMAGE} style={styles.judgeAvatar} />
         <View style={styles.judgeInfo}>
           <Text style={[styles.judgeName, { color: colors.foreground }]}>Judge Dorothy</Text>
           <Text style={[styles.judgeTitle, { color: colors.mutedForeground }]}>
@@ -206,9 +206,7 @@ export default function CourtroomScreen() {
           return (
             <View style={[styles.msgRow, isJudge && styles.judgeRow, !isJudge && !isMe && styles.otherRow]}>
               {isJudge && (
-                <View style={[styles.avatar, { backgroundColor: colors.primary + "33" }]}>
-                  <Feather name="award" size={12} color={colors.primary} />
-                </View>
+                <Image source={JUDGE_IMAGE} style={styles.avatar} />
               )}
               <View
                 style={[
@@ -313,7 +311,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  gavelIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  judgeAvatar: { width: 40, height: 40, borderRadius: 20 },
   judgeInfo: { flex: 1 },
   judgeName: { fontSize: 15, fontFamily: "Inter_700Bold" },
   judgeTitle: { fontSize: 12, fontFamily: "Inter_400Regular", textTransform: "capitalize" },

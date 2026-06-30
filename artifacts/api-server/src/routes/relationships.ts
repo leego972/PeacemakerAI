@@ -253,5 +253,4 @@ router.patch("/relationships/:id/status", async (req, res): Promise<void> => {
   res.json({ relationship: updated, healthLabel: healthLabel(updated.healthScore) });
 });
 
-export { healthLabel };
 export default router;

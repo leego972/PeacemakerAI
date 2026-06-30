@@ -13,6 +13,8 @@ import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
 
+const JUDGE_IMAGE = require("../assets/images/judge-dorothy.png");
+
 export default function WelcomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -35,9 +37,7 @@ export default function WelcomeScreen() {
     >
       <View style={[styles.inner, { paddingTop: insets.top + (Platform.OS === "web" ? 67 : 20), paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 20) }]}>
         <View style={styles.topSection}>
-          <View style={[styles.emblem, { borderColor: colors.primary }]}>
-            <Feather name="award" size={48} color={colors.primary} />
-          </View>
+          <Image source={JUDGE_IMAGE} style={styles.emblem} />
 
           <Text style={[styles.brand, { color: colors.primary }]}>
             PeacemakerAI
@@ -106,12 +106,9 @@ const styles = StyleSheet.create({
   },
   topSection: { alignItems: "center", gap: 14, marginTop: 20 },
   emblem: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     marginBottom: 8,
   },
   brand: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
