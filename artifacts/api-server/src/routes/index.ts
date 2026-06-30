@@ -1,11 +1,11 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
-import admissionsRouter from "./admissions";
 import casesRouter from "./cases";
 import judgeRouter from "./judge";
 import relationshipsRouter from "./relationships";
 import notificationsRouter from "./notifications";
+import admissionsRouter from "./admissions";
 
 const router: IRouter = Router();
 

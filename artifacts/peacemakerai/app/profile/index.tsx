@@ -152,6 +152,26 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Legal */}
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>LEGAL</Text>
+          <TouchableOpacity
+            style={styles.legalRow}
+            onPress={() => router.push("/legal/terms")}
+            activeOpacity={0.7}
+          >
+            <Feather name="file-text" size={16} color={colors.mutedForeground} />
+            <Text style={[styles.legalRowText, { color: colors.foreground }]}>Terms of Service</Text>
+            <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+          </TouchableOpacity>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View style={styles.legalNote}>
+            <Text style={[styles.legalNoteText, { color: colors.mutedForeground }]}>
+              PeacemakerAI is not a legal service. No content constitutes professional legal or therapeutic advice.
+            </Text>
+          </View>
+        </View>
+
         {/* Sign out */}
         <TouchableOpacity
           style={[styles.signOutBtn, { borderColor: colors.destructive + "44" }]}
@@ -197,4 +217,8 @@ const styles = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, paddingVertical: 14,
   },
   signOutText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  legalRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  legalRowText: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
+  legalNote: { paddingTop: 2 },
+  legalNoteText: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
 });

@@ -10,19 +10,49 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/useColors";
-import { SAFETY_RESOURCES } from "@/constants/resources";
+import { SAFETY_RESOURCES, getResourcesForCategory, type SafetyResource } from "@/constants/resources";
 import * as Haptics from "expo-haptics";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  emergency:        "Emergency",
+  domestic_violence: "Domestic Violence",
+  mens_support:     "Men's Support",
+  child_protection: "Child Protection",
+  mental_health:    "Mental Health & Crisis",
+  sexual_violence:  "Sexual Violence",
+  youth:            "Youth & Teens",
+  counseling:       "Counseling & Therapy",
+  legal:            "Legal Support",
+};
 
 export default function SafetyResourcesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { category } = useLocalSearchParams<{ category?: string }>();
 
-  const call = (number: string) => {
+  // If a safety category was passed (from a safety stop), show relevant resources first.
+  // Otherwise show all.
+  const highlighted = category ? getResourcesForCategory(category) : [];
+  const isFiltered = highlighted.length > 0;
+  const displayResources: SafetyResource[] = isFiltered ? highlighted : SAFETY_RESOURCES;
+
+  const openContact = (r: SafetyResource) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const digits = number.replace(/\D/g, "");
-    Linking.openURL(`tel:${digits}`);
+    if (r.isText) {
+      // Open SMS or browser
+      const digits = r.number.replace(/\D/g, "");
+      if (digits.length <= 10) {
+        Linking.openURL(`sms:${digits}`).catch(() =>
+          Linking.openURL(`https://www.crisistextline.org/`));
+      } else {
+        Linking.openURL(`https://psychologytoday.com/us/therapists`).catch(() => {});
+      }
+    } else {
+      const digits = r.number.replace(/\D/g, "");
+      Linking.openURL(`tel:${digits}`);
+    }
   };
 
   return (
@@ -53,50 +83,98 @@ export default function SafetyResourcesScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Emergency banner — always visible */}
         <View style={[styles.banner, { backgroundColor: "#3B0000", borderColor: colors.destructive }]}>
           <Feather name="alert-triangle" size={20} color={colors.destructive} />
           <Text style={[styles.bannerText, { color: "#FCA5A5" }]}>
-            If you or someone else is in immediate danger, call 911 now.
+            If you or someone else is in immediate danger, call 911 now. Your safety comes first.
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-          FREE CONFIDENTIAL SUPPORT
-        </Text>
-
-        {SAFETY_RESOURCES.map((r) => (
-          <View
-            key={r.name}
-            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <View style={styles.cardTop}>
-              <Text style={[styles.resourceName, { color: colors.foreground }]}>{r.name}</Text>
-              <View style={[styles.badge, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.badgeText, { color: colors.mutedForeground }]}>
-                  {r.available}
-                </Text>
-              </View>
-            </View>
-            <Text style={[styles.resourceDesc, { color: colors.mutedForeground }]}>
-              {r.description}
+        {isFiltered && (
+          <View style={[styles.relevantBanner, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "44" }]}>
+            <Feather name="info" size={15} color={colors.primary} />
+            <Text style={[styles.relevantText, { color: colors.primary }]}>
+              Based on what was shared, these resources are most relevant to your situation.
             </Text>
+          </View>
+        )}
+
+        {/* Grouped resources */}
+        {isFiltered ? (
+          <>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+              RECOMMENDED FOR YOU
+            </Text>
+            {displayResources.map((r) => (
+              <ResourceCard key={r.name} resource={r} colors={colors} onPress={() => openContact(r)} />
+            ))}
             <TouchableOpacity
-              onPress={() => call(r.number)}
-              style={[styles.callBtn, { backgroundColor: colors.primary }]}
-              activeOpacity={0.85}
+              onPress={() => router.setParams({ category: "" })}
+              style={styles.showAllBtn}
             >
-              <Feather name="phone" size={14} color={colors.primaryForeground} />
-              <Text style={[styles.callBtnText, { color: colors.primaryForeground }]}>
-                {r.number}
+              <Text style={[styles.showAllText, { color: colors.mutedForeground }]}>
+                Show all resources
               </Text>
             </TouchableOpacity>
-          </View>
-        ))}
+          </>
+        ) : (
+          <>
+            {(Object.keys(CATEGORY_LABELS) as Array<keyof typeof CATEGORY_LABELS>).map((cat) => {
+              const catResources = SAFETY_RESOURCES.filter((r) => r.category === cat);
+              if (catResources.length === 0) return null;
+              return (
+                <View key={cat} style={styles.section}>
+                  <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                    {CATEGORY_LABELS[cat].toUpperCase()}
+                  </Text>
+                  {catResources.map((r) => (
+                    <ResourceCard key={r.name} resource={r} colors={colors} onPress={() => openContact(r)} />
+                  ))}
+                </View>
+              );
+            })}
+          </>
+        )}
 
         <Text style={[styles.note, { color: colors.mutedForeground }]}>
-          PeacemakerAI is not a crisis service. The resources above are operated by trained professionals. Please use them.
+          PeacemakerAI is not a crisis service. The resources above are operated by trained professionals. Please reach out to them.
         </Text>
       </ScrollView>
+    </View>
+  );
+}
+
+function ResourceCard({
+  resource: r, colors, onPress,
+}: {
+  resource: SafetyResource;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  onPress: () => void;
+}) {
+  return (
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.cardTop}>
+        <Text style={[styles.resourceName, { color: colors.foreground }]}>{r.name}</Text>
+        <View style={[styles.badge, { backgroundColor: colors.secondary }]}>
+          <Text style={[styles.badgeText, { color: colors.mutedForeground }]}>{r.available}</Text>
+        </View>
+      </View>
+      <Text style={[styles.resourceDesc, { color: colors.mutedForeground }]}>{r.description}</Text>
+      <TouchableOpacity
+        onPress={onPress}
+        style={[styles.callBtn, { backgroundColor: r.isText ? colors.secondary : colors.primary }]}
+        activeOpacity={0.85}
+      >
+        <Feather
+          name={r.isText ? "message-square" : "phone"}
+          size={14}
+          color={r.isText ? colors.foreground : colors.primaryForeground}
+        />
+        <Text style={[styles.callBtnText, { color: r.isText ? colors.foreground : colors.primaryForeground }]}>
+          {r.number}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -122,6 +200,16 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   bannerText: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium", lineHeight: 21 },
+  relevantBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+  },
+  relevantText: { flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 19 },
+  section: { gap: 10 },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
@@ -154,6 +242,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   callBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  showAllBtn: { alignItems: "center", paddingVertical: 8 },
+  showAllText: { fontSize: 13, fontFamily: "Inter_500Medium" },
   note: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",

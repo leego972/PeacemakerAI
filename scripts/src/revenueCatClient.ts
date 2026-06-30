@@ -1,4 +1,4 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
+const RC_BASE = "https://api.revenuecat.com/v2";
 
 type ClientResponse<T> = { data: T; error: null } | { data: null; error: any };
 
@@ -9,12 +9,13 @@ interface RevenueCatClient {
   delete<T>(params: { url: string; path?: Record<string, string>; security?: any }): Promise<ClientResponse<T>>;
 }
 
-export async function getUncachableRevenueCatClient(): Promise<RevenueCatClient> {
-  const connectors = new ReplitConnectors();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getUncachableRevenueCatClient(): Promise<any> {
+  const apiKey = process.env.REVENUECAT_SECRET_KEY;
+  if (!apiKey) throw new Error("REVENUECAT_SECRET_KEY env var is not set");
 
   function resolvePath(url: string, path?: Record<string, string>): string {
-    // SDK sends paths like "/projects", we need to prefix with /v2
-    let resolved = "/v2" + url;
+    let resolved = url;
     if (path) {
       for (const [k, v] of Object.entries(path)) {
         resolved = resolved.replace(`{${k}}`, v);
@@ -30,7 +31,7 @@ export async function getUncachableRevenueCatClient(): Promise<RevenueCatClient>
     query?: Record<string, unknown>,
     body?: unknown,
   ): Promise<ClientResponse<T>> {
-    let resolved = resolvePath(url, path);
+    let resolved = RC_BASE + resolvePath(url, path);
     if (query) {
       const params = new URLSearchParams();
       for (const [k, v] of Object.entries(query)) {
@@ -40,11 +41,15 @@ export async function getUncachableRevenueCatClient(): Promise<RevenueCatClient>
       if (qs) resolved += `?${qs}`;
     }
 
-    const options: any = { method };
-    // Pass body as object so connectors SDK auto-sets Content-Type: application/json
-    if (body !== undefined) options.body = body;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    };
 
-    const response = await connectors.proxy("revenuecat", resolved, options);
+    const init: RequestInit = { method, headers };
+    if (body !== undefined) init.body = JSON.stringify(body);
+
+    const response = await fetch(resolved, init);
     const json = await response.json();
 
     if (!response.ok) return { data: null, error: json };

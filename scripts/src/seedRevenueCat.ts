@@ -141,7 +141,7 @@ async function seedRevenueCat() {
   const playStoreProduct = await ensureProduct(playStoreApp!, "Play Store", PLAY_STORE_PRODUCT_IDENTIFIER, false);
 
   // --- Test store prices ---
-  const { data: priceData, error: priceErr } = await client.post<TestStorePricesResponse>({
+  const { data: priceData, error: priceErr } = await client.post({
     url: "/projects/{project_id}/products/{product_id}/test_store_prices",
     path: { project_id: project.id, product_id: testProduct.id },
     body: { prices: PRODUCT_PRICES },

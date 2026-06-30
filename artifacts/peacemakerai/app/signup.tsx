@@ -227,7 +227,14 @@ export default function SignupScreen() {
           </TouchableOpacity>
 
           <Text style={[styles.terms, { color: colors.mutedForeground }]}>
-            By signing up you confirm PeacemakerAI is not a legal service and provides no legal or professional advice.
+            By creating an account you agree to our{" "}
+            <Text
+              style={[styles.termsLink, { color: colors.primary }]}
+              onPress={() => router.push("/legal/terms")}
+            >
+              Terms of Service
+            </Text>
+            . PeacemakerAI is not a legal service and no content within constitutes professional legal or therapeutic advice.
           </Text>
         </View>
 
@@ -263,6 +270,7 @@ const styles = StyleSheet.create({
   btn: { borderRadius: 14, paddingVertical: 16, alignItems: "center" },
   btnText: { fontSize: 16, fontFamily: "Inter_700Bold" },
   terms: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 17 },
+  termsLink: { fontFamily: "Inter_600SemiBold" },
   footer: { flexDirection: "row", justifyContent: "center" },
   footerText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   link: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
