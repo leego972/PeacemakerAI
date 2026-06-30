@@ -5,7 +5,7 @@ import {
 } from "@workspace/db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
-import { healthLabel } from "./relationships";
+import { caseFilingLimiter } from "../middlewares/rateLimit";
 import { checkCaseSuitability } from "../lib/caseSuitability";
 
 const router: IRouter = Router();
@@ -82,17 +82,28 @@ router.get("/cases", async (req, res): Promise<void> => {
 });
 
 // POST /cases — file a new case (summon partner/contact)
-router.post("/cases", async (req, res): Promise<void> => {
+router.post("/cases", caseFilingLimiter, async (req, res): Promise<void> => {
   const userId = req.auth!.userId;
-  const { relationshipId, courtType, title, openingArgument } = req.body as {
+  const { relationshipId, courtType, title, openingArgument, personalConnectionConfirmed } = req.body as {
     relationshipId?: string;
     courtType?: string;
     title?: string;
     openingArgument?: string;
+    personalConnectionConfirmed?: boolean;
   };
 
   if (!relationshipId || !courtType || !title || !openingArgument) {
     res.status(400).json({ error: "relationshipId, courtType, title and openingArgument are required" });
+    return;
+  }
+
+  if (personalConnectionConfirmed !== true) {
+    res.status(422).json({
+      error: "Personal connection confirmation required",
+      category: "consent",
+      reason: "PeacemakerAI only accepts voluntary private disputes between people who personally know each other.",
+      redirect: "Ask the filer to confirm this is a private everyday dispute and that the invited person can freely accept, decline, block, or report.",
+    });
     return;
   }
 
