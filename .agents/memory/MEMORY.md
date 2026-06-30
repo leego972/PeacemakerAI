@@ -1,0 +1,1 @@
+- [RevenueCat client proxy](revenuecat-proxy-client.md) — SDK sends paths like `/projects`; must prefix with `/v2` in the client wrapper.

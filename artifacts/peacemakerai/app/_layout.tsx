@@ -9,16 +9,23 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { Alert } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
-import { CasesProvider } from "@/context/CasesContext";
 import { useColors } from "@/hooks/useColors";
+import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
 
 SplashScreen.preventAutoHideAsync();
+
+try {
+  initializeRevenueCat();
+} catch (err: any) {
+  Alert.alert("RevenueCat Unavailable", err?.message ?? "Unknown error");
+}
 
 const queryClient = new QueryClient();
 
@@ -39,26 +46,17 @@ function RootLayoutNav() {
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="signup" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="court/select"
-        options={{ title: "Choose Your Court" }}
-      />
-      <Stack.Screen
-        name="case/new"
-        options={{ title: "File a Case" }}
-      />
-      <Stack.Screen
-        name="case/[id]"
-        options={{ title: "Court Session" }}
-      />
-      <Stack.Screen
-        name="case/verdict"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="safety/resources"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="notifications" options={{ title: "Inbox", headerShown: true }} />
+      <Stack.Screen name="partner/link" options={{ title: "Link My Partner" }} />
+      <Stack.Screen name="partner/accept" options={{ title: "Accept Invite" }} />
+      <Stack.Screen name="partner/relationship" options={{ title: "Relationship" }} />
+      <Stack.Screen name="case/new" options={{ title: "Set a Hearing" }} />
+      <Stack.Screen name="case/summons" options={{ title: "Summons", headerShown: false }} />
+      <Stack.Screen name="case/courtroom" options={{ title: "Court in Session" }} />
+      <Stack.Screen name="case/[id]" options={{ title: "Case Details" }} />
+      <Stack.Screen name="profile/index" options={{ title: "My Profile" }} />
+      <Stack.Screen name="paywall" options={{ title: "Premium", presentation: "modal" }} />
+      <Stack.Screen name="safety/resources" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -72,9 +70,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
+    if (fontsLoaded || fontError) SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
@@ -86,9 +82,9 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AuthProvider>
-                <CasesProvider>
+                <SubscriptionProvider>
                   <RootLayoutNav />
-                </CasesProvider>
+                </SubscriptionProvider>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

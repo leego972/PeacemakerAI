@@ -20,7 +20,7 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)");
     }
   }, [user, loading]);
 

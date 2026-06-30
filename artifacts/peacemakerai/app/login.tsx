@@ -34,7 +34,7 @@ export default function LoginScreen() {
     setLoading(false);
     if (result.ok) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)");
     } else {
       setError(result.error ?? "Sign in failed.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

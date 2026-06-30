@@ -14,7 +14,7 @@ runButton = "Project"
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
-integrations = ["github:1.0.0"]
+integrations = ["github:1.0.0", "revenuecat:1.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -27,3 +27,10 @@ channel = "stable-25_05"
 
 [userenv.shared]
 JWT_SECRET = "59a60a3e42efb28ff6df8437307dcd8ccda25d10001bc4424a58c5de467e4935322ea8d073b712d778e2efd053457feb"
+REVENUECAT_PROJECT_ID = "proja61fa838"
+REVENUECAT_TEST_STORE_APP_ID = "appb60f2d264b"
+REVENUECAT_APPLE_APP_STORE_APP_ID = "app7c0585b427"
+REVENUECAT_GOOGLE_PLAY_STORE_APP_ID = "app4a71de3d63"
+EXPO_PUBLIC_REVENUECAT_TEST_API_KEY = "test_pOIBrYQhZubvGngXlcsRMkQOqvr"
+EXPO_PUBLIC_REVENUECAT_IOS_API_KEY = "appl_KAcDhHenTDliVwsDkhxVZMIwywv"
+EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY = "goog_iyFoVEPTcqrPhGPDWHnStJlSCgb"
