@@ -1,4 +1,4 @@
-export type JudgeId = "dorothy" | "james" | "maggie" | "karl";
+export type JudgeId = "dorothy" | "james" | "maggie" | "karl" | "edward";
 
 export type JudgeDefinition = {
   id: JudgeId;
@@ -37,9 +37,16 @@ export const JUDGES: Record<JudgeId, JudgeDefinition> = {
     image: require("../assets/images/judge-karl.png"),
     tagline: "Before we proceed — what are you really trying to say?",
   },
+  edward: {
+    id: "edward",
+    name: "Judge Edward",
+    title: "Justice, District Court",
+    image: require("../assets/images/judge-edward.png"),
+    tagline: "I've heard a lot of stories. Make yours worth my time.",
+  },
 };
 
-export const JUDGE_ORDER: JudgeId[] = ["dorothy", "james", "maggie", "karl"];
+export const JUDGE_ORDER: JudgeId[] = ["dorothy", "james", "maggie", "karl", "edward"];
 
 /**
  * Deterministically picks a judge from a case ID using a simple char-code hash.
